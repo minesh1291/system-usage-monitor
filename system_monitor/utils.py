@@ -5,7 +5,6 @@ from IPython.display import clear_output
 from collections import deque
 import matplotlib.pyplot as plt
 
-# logs = multiprocessing.Manager().dict()
 
 class SystemMonitorProcess:
     def __init__(self, start_timestamp, update_interval=0.1):
@@ -18,7 +17,7 @@ class SystemMonitorProcess:
         self.start_time = start_timestamp
 
     def get_system_info(self):
-        cpu_percent = psutil.cpu_percent(interval=0.0, percpu=False)
+        cpu_percent = psutil.cpu_percent(interval=self.update_interval, percpu=False)
         mem_percent = float(psutil.virtual_memory().used) / self.max_mem * 100
         return cpu_percent, mem_percent
         
@@ -40,9 +39,14 @@ class SystemMonitor:
     def __init__(self, update_interval=0.1):
         self.graph = None
         self.update_interval = update_interval
+        self.max_mem = psutil.virtual_memory().total
         self.start_timestamp = time.time()
         self.msgs = []
         self.logs = multiprocessing.Manager().dict()
+        
+        self.n_cpus = psutil.cpu_count()
+        cpu_clock = psutil.cpu_freq()
+        self.cpu_clock = cpu_clock.current/(2**10)
     
     def monitor(self):
         self.graph = SystemMonitorProcess(self.start_timestamp, self.update_interval)
@@ -56,23 +60,28 @@ class SystemMonitor:
         if not 'sysCpuLogs' in logs:
             print('No data yet.')
             return
-
-        fig = plt.figure(figsize=(20,3))
+        x_len = min([len(list(logs['time'])), len(logs['sysCpuLogs']), len(logs['sysMemLogs'])])
+        xvals = range(int(max(logs['time'])))
+        
+        fig = plt.figure(figsize=(20,7))
         plt.ylabel('usage (%)')
         
-        # FIXME display running time on primary X axis!
         ax = plt.axes()
-        #plt.xlabel('running time (s)')
-        x_len = min([len(list(logs['time'])), len(logs['sysCpuLogs']), len(logs['sysMemLogs'])])
+        ax.set_xlabel('running time (s)')
+        ax.set_xticks(xvals)
+        ax.set_xticklabels(xvals)
+        
+        ax3 = ax.twiny()
+        ax3.set_xlabel('running time (%)')
         
         ax2 = ax.twiny()
-        ax2.plot(list(logs['time'])[:x_len], list(logs['sysCpuLogs'])[:x_len], label="cpu")
-        ax2.plot(list(logs['time'])[:x_len], list(logs['sysMemLogs'])[:x_len], label="mem")
+        ax2.plot(list(logs['time'])[:x_len], list(logs['sysCpuLogs'])[:x_len], ".--", label=f"cpu {self.n_cpus}x {self.cpu_clock:0.1f}MHz")
+        ax2.plot(list(logs['time'])[:x_len], list(logs['sysMemLogs'])[:x_len], ".--", label=f"mem {self.max_mem/(8**10):0.1f} GBs")
         ax2.set_xticks([msg[0] for msg in self.msgs])
         ax2.set_xticklabels([msg[1] for msg in self.msgs], rotation=90)
+        ax2.tick_params(axis='x', which='major', pad=25)
 
         ax2.legend(loc='best')
-        plt.show()
         
 
 if __name__ == "__main__":        
