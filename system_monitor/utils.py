@@ -75,7 +75,7 @@ class SystemMonitor:
         ax3.set_xlabel('running time (%)')
         
         ax2 = ax.twiny()
-        ax2.plot(list(logs['time'])[:x_len], list(logs['sysCpuLogs'])[:x_len], ".--", label=f"cpu {self.n_cpus}x {self.cpu_clock:0.1f}MHz")
+        ax2.plot(list(logs['time'])[:x_len], list(logs['sysCpuLogs'])[:x_len], ".--", label=f"cpu {self.n_cpus}x {self.cpu_clock:0.1f}GHz")
         ax2.plot(list(logs['time'])[:x_len], list(logs['sysMemLogs'])[:x_len], ".--", label=f"mem {self.max_mem/(8**10):0.1f} GBs")
         ax2.set_xticks([msg[0] for msg in self.msgs])
         ax2.set_xticklabels([msg[1] for msg in self.msgs], rotation=90)
